@@ -90,7 +90,7 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'nickname', 'profile_img_url', 'my_movies', 'my_categories', 'followings')
+        fields = ('id', 'nickname', 'profile_img_url', 'my_movies', 'my_categories', 'followings', 'followers')
 
 
 # class UserSerializer(serializers.ModelSerializer):

@@ -2,9 +2,9 @@
   <div class="profile-page">
     <div class="navbar-container">
       <img
-          :src="`https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=${nickname}&radius=50`"
-          alt="avatar"
-          class="avatar"
+        :src="`https://api.dicebear.com/8.x/adventurer-neutral/svg?seed=${nickname}&radius=50`"
+        alt="avatar"
+        class="avatar"
       />
       <h3>{{ `${nickname}` }}</h3>
       <button v-if="!isMe" @click="subscribe">
@@ -23,7 +23,7 @@
         <RouterLink :to="{ name: 'towatch', params: {userId: profileId} }">
           {{ `${nickname}님이 볼 영화` }}
         </RouterLink>
-        <div v-if="categories.length > 3">
+        <div v-if="categories && categories.length > 3">
           <div v-for="(category, index) in categories.slice(3)" :key="index" class="category-link">
             <RouterLink 
               :to="{ name: 'category', params: {userId: profileId, categoryId: category.id} }" class="size">
@@ -60,8 +60,10 @@ const profileId = route.params.userId
 const userId = computed(() => store.currentUser.userId)
 const categories = ref([])
 const followings = ref([])
+const followers = ref([])
 
 const isMe = computed(() => Number(profileId) === Number(userId.value))
+const isSubscribed = ref(false)
 
 const getUserProfile = async () => {
   try {
@@ -74,15 +76,19 @@ const getUserProfile = async () => {
     })
     nickname.value = response.data.nickname
     categories.value = response.data.my_categories
-    followings.value = response.data.followings
+    followers.value = response.data.followers
+    console.log('User profile loaded:', response.data)
+    
+    // Check if current user is subscribed to the profile user
+    isSubscribed.value = followers.value.some(follower => {
+      // console.log(`Comparing follower: ${Number(follower)} with userId: ${Number(userId.value)}`)
+      return Number(follower) === Number(userId.value)
+    })
+    // console.log('isSubscribed:', isSubscribed.value)
   } catch (error) {
-    console.log(error)
+    console.log('Error loading user profile:', error)
   }
 }
-
-const isSubscribed = computed(() => {
-  return followings.value.some(following => Number(following.id) === Number(profileId))
-})
 
 const subscribe = async function () {
   try {
@@ -94,13 +100,17 @@ const subscribe = async function () {
       }
     })
     if (response.data.is_following) {
-      followings.value.push({ id: profileId })
+      followers.value.push(Number(userId.value))
+      isSubscribed.value = true
       console.log('구독 완료')
     } else {
-      followings.value = followings.value.filter(following => Number(following.id) !== Number(profileId))
+      followers.value = followers.value.filter(follower => Number(follower.id) !== Number(userId.value))
+      isSubscribed.value = false
+      console.log('구독 취소')
     }
+    console.log('Updated followers:', followers.value)
   } catch (error) {
-    console.log(error)
+    console.log('Subscription error:', error)
   }
 }
 
@@ -121,7 +131,7 @@ const addCategory = async function () {
     categories.value = [...categories.value, response.data]
     name.value = ''
   } catch (error) {
-    console.log(error)
+    console.log('Error adding category:', error)
   }
 }
 
@@ -129,6 +139,7 @@ onMounted(async () => {
   await getUserProfile()
 })
 </script>
+
 
 <style scoped>
 .profile-page {
